@@ -16,7 +16,7 @@ public class GameService {
     private final RewardCalculator rewardCalculator;
 
     // Hardcoded normal symbols
-    private static final Set<String> NORMAL_SYMBOLS = Set.of("A", "B", "C", "D", "E"); // Add your normal symbols here
+    private static final Set<String> NORMAL_SYMBOLS = Set.of("A", "B", "C", "D", "E","F"); // Add your normal symbols here
 
     public GameService(Game gameConfig, MatrixGenerator matrixGenerator, RewardCalculator rewardCalculator) {
         if (gameConfig == null || matrixGenerator == null || rewardCalculator == null) {
@@ -118,16 +118,15 @@ public class GameService {
 
         for (int row = 0; row <= matrixSize - countRequired; row++) {
             for (int col = 0; col <= matrixSize - countRequired; col++) {
+                String symbol;
                 if (leftToRight) {
-                    String symbol = getDiagonalSymbol(matrix, row, col, countRequired, true);
-                    if (symbol != null && NORMAL_SYMBOLS.contains(symbol)) {
-                        winCombinations.computeIfAbsent(symbol, k -> new ArrayList<>()).add(EnumWinningCombinationType.same_symbols_diagonally_left_to_right);
-                    }
+                    symbol = getDiagonalSymbol(matrix, row, col, countRequired, true);
                 } else {
-                    String symbol = getDiagonalSymbol(matrix, row, col, countRequired, false);
-                    if (symbol != null && NORMAL_SYMBOLS.contains(symbol)) {
-                        winCombinations.computeIfAbsent(symbol, k -> new ArrayList<>()).add(EnumWinningCombinationType.same_symbols_diagonally_right_to_left);
-                    }
+                    symbol = getDiagonalSymbol(matrix, row, col, countRequired, false);
+                }
+                if (symbol != null && NORMAL_SYMBOLS.contains(symbol)) {
+                    winCombinations.computeIfAbsent(symbol, k -> new ArrayList<>())
+                            .add(leftToRight ? EnumWinningCombinationType.same_symbols_diagonally_left_to_right : EnumWinningCombinationType.same_symbols_diagonally_right_to_left);
                 }
             }
         }
@@ -161,7 +160,9 @@ public class GameService {
                 }
 
                 if (consecutiveCount >= countRequired) {
-                    matchesMap.computeIfAbsent(symbol, k -> new ArrayList<>()).add(winType);
+                   if (!matchesMap.getOrDefault(symbol, Collections.emptyList()).contains(winType)) {
+                        matchesMap.computeIfAbsent(symbol, k -> new ArrayList<>()).add(winType);
+                    }
                 }
             }
         }
@@ -226,7 +227,7 @@ public class GameService {
                 .collect(Collectors.toList());
     }
 
-    EnumBonusImpact determineBonusImpact(String bonusSymbol) {
+    private EnumBonusImpact determineBonusImpact(String bonusSymbol) {
         switch (bonusSymbol) {
             case "10x":
             case "5x":

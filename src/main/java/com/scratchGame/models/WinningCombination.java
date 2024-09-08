@@ -1,28 +1,27 @@
 package com.scratchGame.models;
 
 import com.scratchGame.enums.EnumWinningCombinationType;
-import org.json.JSONArray;
+import com.scratchGame.enums.WinningCondition;
+import com.scratchGame.enums.WinningGroup;
 
 import java.util.List;
 
 public class WinningCombination {
     private EnumWinningCombinationType combinationType;
     private double rewardMultiplier;
-    private String when;
+    private WinningCondition when;
+    private WinningGroup group;
     private int count;
     private List<List<String>> coveredAreas;
 
-    public WinningCombination(EnumWinningCombinationType combinationType, double rewardMultiplier, String when, int count, List<List<String>> coveredAreas) {
+    public WinningCombination(EnumWinningCombinationType combinationType, double rewardMultiplier, WinningCondition when, WinningGroup group, int count, List<List<String>> coveredAreas) {
         this.combinationType = combinationType;
         this.rewardMultiplier = rewardMultiplier;
         this.when = when;
+        this.group = group;
         this.count = count;
         this.coveredAreas = coveredAreas;
     }
-
-    public WinningCombination(double rewardMultiplier, String when, int count, String group, JSONArray coveredAreas) {
-    }
-
 
     public EnumWinningCombinationType getCombinationType() {
         return combinationType;
@@ -40,12 +39,20 @@ public class WinningCombination {
         this.rewardMultiplier = rewardMultiplier;
     }
 
-    public String getWhen() {
+    public WinningCondition getWhen() {
         return when;
     }
 
-    public void setWhen(String when) {
+    public void setWhen(WinningCondition when) {
         this.when = when;
+    }
+
+    public WinningGroup getGroup() {
+        return group;
+    }
+
+    public void setGroup(WinningGroup group) {
+        this.group = group;
     }
 
     public int getCount() {
@@ -66,10 +73,11 @@ public class WinningCombination {
 
     @Override
     public String toString() {
-        return "WinningCombinationConfig{" +
+        return "WinningCombination{" +
                 "combinationType=" + combinationType +
                 ", rewardMultiplier=" + rewardMultiplier +
-                ", when='" + when + '\'' +
+                ", when=" + when +
+                ", group=" + group +
                 ", count=" + count +
                 ", coveredAreas=" + coveredAreas +
                 '}';

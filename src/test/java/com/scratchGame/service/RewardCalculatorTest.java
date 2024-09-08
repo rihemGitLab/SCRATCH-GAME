@@ -1,6 +1,8 @@
 package com.scratchGame.service;
 
 import com.scratchGame.enums.EnumWinningCombinationType;
+import com.scratchGame.enums.WinningGroup;
+import com.scratchGame.enums.WinningCondition;
 import com.scratchGame.exceptions.InvalidArgumentException;
 import com.scratchGame.models.Game;
 import com.scratchGame.models.Probability;
@@ -28,11 +30,46 @@ public class RewardCalculatorTest {
 
         // Create WinningCombination objects
         Map<String, WinningCombination> winCombinations = new HashMap<>();
-        winCombinations.put("same_symbol_3_times", new WinningCombination(EnumWinningCombinationType.same_symbol_3_times, 5.0, "When symbol appears", 3, Collections.emptyList()));
-        winCombinations.put("same_symbols_horizontally", new WinningCombination(EnumWinningCombinationType.same_symbols_horizontally, 4.0, "When symbols appear horizontally", 3, Collections.emptyList()));
-        winCombinations.put("same_symbols_vertically", new WinningCombination(EnumWinningCombinationType.same_symbols_vertically, 3.0, "When symbols appear vertically", 3, Collections.emptyList()));
-        winCombinations.put("same_symbols_diagonally_left_to_right", new WinningCombination(EnumWinningCombinationType.same_symbols_diagonally_left_to_right, 6.0, "When symbols appear diagonally from left to right", 3, Collections.emptyList()));
-        winCombinations.put("same_symbols_diagonally_right_to_left", new WinningCombination(EnumWinningCombinationType.same_symbols_diagonally_right_to_left, 6.0, "When symbols appear diagonally from right to left", 3, Collections.emptyList()));
+        winCombinations.put(EnumWinningCombinationType.same_symbol_3_times.name(), new WinningCombination(
+                EnumWinningCombinationType.same_symbol_3_times,
+                5.0,
+                WinningCondition.same_symbols,
+                WinningGroup.same_symbols,
+                3,
+                Collections.emptyList()
+        ));
+        winCombinations.put(EnumWinningCombinationType.same_symbols_horizontally.name(), new WinningCombination(
+                EnumWinningCombinationType.same_symbols_horizontally,
+                4.0,
+                WinningCondition.linear_symbols,
+                WinningGroup.horizontally_linear_symbols,
+                3,
+                Collections.emptyList()
+        ));
+        winCombinations.put(EnumWinningCombinationType.same_symbols_vertically.name(), new WinningCombination(
+                EnumWinningCombinationType.same_symbols_vertically,
+                3.0,
+                WinningCondition.linear_symbols,
+                WinningGroup.vertically_linear_symbols,
+                3,
+                Collections.emptyList()
+        ));
+        winCombinations.put(EnumWinningCombinationType.same_symbols_diagonally_left_to_right.name(), new WinningCombination(
+                EnumWinningCombinationType.same_symbols_diagonally_left_to_right,
+                6.0,
+                WinningCondition.linear_symbols,
+                WinningGroup.ltr_diagonally_linear_symbols,
+                3,
+                Collections.emptyList()
+        ));
+        winCombinations.put(EnumWinningCombinationType.same_symbols_diagonally_right_to_left.name(), new WinningCombination(
+                EnumWinningCombinationType.same_symbols_diagonally_right_to_left,
+                6.0,
+                WinningCondition.linear_symbols,
+                WinningGroup.rtl_diagonally_linear_symbols,
+                3,
+                Collections.emptyList()
+        ));
 
         // Create Probability object
         List<Map<String, Integer>> standardSymbolsProbabilities = Arrays.asList(
@@ -47,12 +84,8 @@ public class RewardCalculatorTest {
 
         game = new Game(3, 3, symbols, probabilities, winCombinations);
         rewardCalculator = new RewardCalculator(game);
-
-
-        // Create Game instance with parameters
-        game = new Game(3, 3, symbols, probabilities, winCombinations);
-        rewardCalculator = new RewardCalculator(game);
     }
+
 
     @Test
     public void testConstructor_WithNullGame_ThrowsException() {
@@ -82,7 +115,7 @@ public class RewardCalculatorTest {
 
         double reward = rewardCalculator.calculateReward(EnumWinningCombinationType.same_symbols_horizontally, matrix);
 
-        assertEquals(4.0 * 2.0, reward, 0.001); // baseRewardMultiplier * symbolMultiplier for one line
+        assertEquals(4.0 * 2.0, reward, 0.001);
     }
 
     @Test
@@ -95,7 +128,7 @@ public class RewardCalculatorTest {
 
         double reward = rewardCalculator.calculateReward(EnumWinningCombinationType.same_symbols_vertically, matrix);
 
-        assertEquals(3.0 * 2.0, reward, 0.001); // baseRewardMultiplier * symbolMultiplier for one line
+        assertEquals(3.0 * 2.0, reward, 0.001);
     }
 
     @Test
@@ -113,21 +146,17 @@ public class RewardCalculatorTest {
 
     @Test
     public void testCalculateReward_DiagonallyRightToLeft() {
-        // Matrix with a winning diagonal from top-right to bottom-left
         List<List<String>> matrix = Arrays.asList(
                 Arrays.asList("C", "B", "A"),
                 Arrays.asList("D", "A", "E"),
                 Arrays.asList("A", "G", "A")  // Diagonal "A", "A", "A"
         );
 
-        // Calculate reward for the diagonal right to left winning combination
         double reward = rewardCalculator.calculateReward(
                 EnumWinningCombinationType.same_symbols_diagonally_right_to_left,
                 matrix
         );
 
-        // Expected reward: baseMultiplier * symbolMultiplier
-        // For the diagonal "A", "A", "A" with base multiplier 6.0 and symbol multiplier 2.0
         assertEquals(6.0 * 2.0, reward, 0.001); // baseRewardMultiplier * symbolMultiplier
     }
 

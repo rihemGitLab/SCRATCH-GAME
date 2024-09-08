@@ -1,6 +1,8 @@
 package com.scratchGame.service;
 
 import com.scratchGame.enums.EnumWinningCombinationType;
+import com.scratchGame.enums.WinningGroup;
+import com.scratchGame.enums.WinningCondition;
 import com.scratchGame.exceptions.GameException;
 import com.scratchGame.exceptions.InvalidArgumentException;
 import com.scratchGame.models.Game;
@@ -12,7 +14,7 @@ import java.util.stream.Collectors;
 
 public class RewardCalculator {
 
-    private  Game game;
+    private Game game;
 
     public RewardCalculator(Game game) {
         if (game == null) {
@@ -21,41 +23,33 @@ public class RewardCalculator {
         this.game = game;
     }
 
-    public RewardCalculator() {
-
-    }
-
-    public double calculateReward(EnumWinningCombinationType winningCombination, List<List<String>> gameMatrix) {
-        if (winningCombination == null || gameMatrix == null) {
+    public double calculateReward(EnumWinningCombinationType winningCombinationType, List<List<String>> gameMatrix) {
+        if (winningCombinationType == null || gameMatrix == null) {
             throw new InvalidArgumentException("Arguments cannot be null");
         }
 
-        WinningCombination combination = getWinningCombinationConfig(winningCombination);
+        WinningCombination combination = getWinningCombinationConfig(winningCombinationType);
         double baseRewardMultiplier = combination.getRewardMultiplier();
         int countRequired = combination.getCount();
+        WinningCondition condition = combination.getWhen();
+        WinningGroup group = combination.getGroup();
 
-        switch (winningCombination) {
-            case same_symbol_3_times, same_symbol_4_times, same_symbol_5_times, same_symbol_6_times, same_symbol_7_times, same_symbol_8_times, same_symbol_9_times:
-                return calculateRewardForCount(gameMatrix, countRequired, baseRewardMultiplier);
-            case same_symbols_horizontally:
-                return checkLines(gameMatrix, countRequired, baseRewardMultiplier, true);
-            case same_symbols_vertically:
-                return checkLines(gameMatrix, countRequired, baseRewardMultiplier, false);
-            case same_symbols_diagonally_left_to_right:
-                return checkDiagonals(gameMatrix, countRequired, baseRewardMultiplier, true);
-            case same_symbols_diagonally_right_to_left:
-                return checkDiagonals(gameMatrix, countRequired, baseRewardMultiplier, false);
+        switch (condition) {
+            case same_symbols:
+                return calculateRewardForSameSymbols(gameMatrix, countRequired, baseRewardMultiplier);
+            case linear_symbols:
+                return calculateRewardForLinearSymbols(gameMatrix, group, baseRewardMultiplier);
             default:
-                throw new GameException("Unsupported winning combination: " + winningCombination);
+                throw new GameException("Unsupported winning condition: " + condition);
         }
     }
 
-    private WinningCombination getWinningCombinationConfig(EnumWinningCombinationType winningCombination) {
-        return Optional.ofNullable(game.getWinCombinations().get(winningCombination.name()))
-                .orElseThrow(() -> new GameException("Winning combination configuration not found for: " + winningCombination));
+    private WinningCombination getWinningCombinationConfig(EnumWinningCombinationType winningCombinationType) {
+        return Optional.ofNullable(game.getWinCombinations().get(winningCombinationType.name()))
+                .orElseThrow(() -> new GameException("Winning combination configuration not found for: " + winningCombinationType));
     }
 
-    private double calculateRewardForCount(List<List<String>> gameMatrix, int countRequired, double baseRewardMultiplier) {
+    private double calculateRewardForSameSymbols(List<List<String>> gameMatrix, int countRequired, double baseRewardMultiplier) {
         Map<String, Long> symbolOccurrences = countSymbolOccurrences(gameMatrix);
 
         return symbolOccurrences.entrySet().stream()
@@ -63,19 +57,27 @@ public class RewardCalculator {
                 .mapToDouble(entry -> {
                     Symbol symbol = game.getSymbols().get(entry.getKey());
                     double symbolMultiplier = (symbol != null) ? symbol.getRewardMultiplier() : 1;
-                    // Total reward multiplier includes both the base and symbol multipliers
                     return baseRewardMultiplier * symbolMultiplier * entry.getValue();
                 })
                 .sum();
     }
 
-    private Map<String, Long> countSymbolOccurrences(List<List<String>> gameMatrix) {
-        return gameMatrix.stream()
-                .flatMap(List::stream)
-                .collect(Collectors.groupingBy(symbol -> symbol, Collectors.counting()));
+    private double calculateRewardForLinearSymbols(List<List<String>> gameMatrix, WinningGroup group, double baseRewardMultiplier) {
+        switch (group) {
+            case horizontally_linear_symbols:
+                return calculateLinearReward(gameMatrix, baseRewardMultiplier, true);
+            case vertically_linear_symbols:
+                return calculateLinearReward(gameMatrix, baseRewardMultiplier, false);
+            case ltr_diagonally_linear_symbols:
+                return calculateDiagonalReward(gameMatrix, baseRewardMultiplier, true);
+            case rtl_diagonally_linear_symbols:
+                return calculateDiagonalReward(gameMatrix, baseRewardMultiplier, false);
+            default:
+                throw new GameException("Unsupported winning group: " + group);
+        }
     }
 
-    private double checkLines(List<List<String>> gameMatrix, int countRequired, double baseRewardMultiplier, boolean horizontal) {
+    private double calculateLinearReward(List<List<String>> gameMatrix, double baseRewardMultiplier, boolean horizontal) {
         int rows = gameMatrix.size();
         int cols = horizontal ? gameMatrix.get(0).size() : rows;
 
@@ -93,10 +95,9 @@ public class RewardCalculator {
                     consecutiveCount = 1;
                 }
 
-                if (consecutiveCount >= countRequired) {
+                if (consecutiveCount >= 3) { // Example count, adjust as needed
                     Symbol symbolObj = game.getSymbols().get(symbol);
                     double symbolMultiplier = (symbolObj != null) ? symbolObj.getRewardMultiplier() : 1;
-                    // Total reward multiplier includes both the base and symbol multipliers
                     return baseRewardMultiplier * symbolMultiplier;
                 }
             }
@@ -104,22 +105,27 @@ public class RewardCalculator {
         return 0.0;
     }
 
-    private double checkDiagonals(List<List<String>> gameMatrix, int countRequired, double baseRewardMultiplier, boolean leftToRight) {
+    private double calculateDiagonalReward(List<List<String>> gameMatrix, double baseRewardMultiplier, boolean leftToRight) {
         int numRows = gameMatrix.size();
         int numCols = gameMatrix.get(0).size();
 
-        for (int row = 0; row <= numRows - countRequired; row++) {
-            for (int col = (leftToRight ? 0 : countRequired - 1); leftToRight ? (col <= numCols - countRequired) : (col >= countRequired - 1); col += (leftToRight ? 1 : -1)) {
-                if (checkDiagonal(gameMatrix, row, col, countRequired, leftToRight)) {
+        for (int row = 0; row <= numRows - 3; row++) {
+            for (int col = (leftToRight ? 0 : 3 - 1); leftToRight ? (col <= numCols - 3) : (col >= 3 - 1); col += (leftToRight ? 1 : -1)) {
+                if (checkDiagonal(gameMatrix, row, col, 3, leftToRight)) { // Example count, adjust as needed
                     String symbol = gameMatrix.get(row).get(col);
                     Symbol symbolObj = game.getSymbols().get(symbol);
                     double symbolMultiplier = (symbolObj != null) ? symbolObj.getRewardMultiplier() : 1;
-                    // Total reward multiplier includes both the base and symbol multipliers
                     return baseRewardMultiplier * symbolMultiplier;
                 }
             }
         }
         return 0.0;
+    }
+
+    private Map<String, Long> countSymbolOccurrences(List<List<String>> gameMatrix) {
+        return gameMatrix.stream()
+                .flatMap(List::stream)
+                .collect(Collectors.groupingBy(symbol -> symbol, Collectors.counting()));
     }
 
     private boolean checkDiagonal(List<List<String>> gameMatrix, int startRow, int startCol, int countRequired, boolean leftToRight) {

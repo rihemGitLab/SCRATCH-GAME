@@ -1,6 +1,5 @@
 package com.scratchGame.service;
 
-import com.scratchGame.enums.EnumBonusImpact;
 import com.scratchGame.enums.EnumWinningCombinationType;
 import com.scratchGame.exceptions.InvalidArgumentException;
 import com.scratchGame.models.Game;
@@ -10,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -25,7 +23,7 @@ public class GameServiceTest {
     public void setUp() {
         // Mock MatrixGenerator and RewardCalculator
         matrixGenerator = new MatrixGenerator(new Game()); // Just for initialization
-        rewardCalculator = new RewardCalculator() {
+        rewardCalculator = new RewardCalculator(new Game()) {
             @Override
             public double calculateReward(EnumWinningCombinationType combinationType, List<List<String>> matrix) throws InvalidArgumentException {
                 // Simple reward calculation for testing
@@ -97,7 +95,7 @@ public class GameServiceTest {
 
         assertNotNull(result);
         assertEquals(matrix, result.getMatrix());
-        assertEquals(11000, result.getReward());
+        assertEquals(11000, result.getReward()); // Example calculation, adjust as needed
         assertEquals(List.of("10x", "+1000"), result.getAppliedBonusSymbol());
     }
 
@@ -135,7 +133,7 @@ public class GameServiceTest {
         };
         gameService = new GameService(gameConfig, mockMatrixGenerator, rewardCalculator);
 
-        assertThrows(RuntimeException.class, () -> gameService.startGame(10), "Matrix generation failed");
+        assertThrows(RuntimeException.class, () -> gameService.startGame(10));
     }
 
     @Test
@@ -170,8 +168,8 @@ public class GameServiceTest {
 
         assertNotNull(result);
         assertEquals(matrix, result.getMatrix());
-        assertEquals(11000, result.getReward()); // Based on combining both bonuses
-        assertEquals(List.of("10x","+1000"), result.getAppliedBonusSymbol()); // Assuming "10x" takes precedence
+        assertEquals(11000, result.getReward()); // Example calculation, adjust as needed
+        assertEquals(List.of("10x", "+1000"), result.getAppliedBonusSymbol());
     }
 
     @Test
@@ -218,7 +216,7 @@ public class GameServiceTest {
 
         assertNotNull(result);
         assertEquals(matrix, result.getMatrix());
-        assertEquals(16000, result.getReward()); // Assuming the higher priority bonus "10x" is applied
-        assertEquals(List.of("10x","+1000"), result.getAppliedBonusSymbol());
+        assertEquals(16000, result.getReward()); // Example calculation, adjust as needed
+        assertEquals(List.of("10x", "+1000"), result.getAppliedBonusSymbol());
     }
 }

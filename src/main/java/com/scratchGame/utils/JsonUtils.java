@@ -1,6 +1,8 @@
 package com.scratchGame.utils;
 
 import com.scratchGame.enums.EnumWinningCombinationType;
+import com.scratchGame.enums.WinningCondition;
+import com.scratchGame.enums.WinningGroup;
 import com.scratchGame.exceptions.ConfigurationException;
 import com.scratchGame.exceptions.InvalidArgumentException;
 import com.scratchGame.models.Game;
@@ -10,7 +12,6 @@ import com.scratchGame.models.WinningCombination;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -70,8 +71,6 @@ public class JsonUtils {
         return symbols;
     }
 
-
-
     private static Probability parseProbabilities(JSONObject probabilitiesJson) throws JSONException {
         JSONArray standardSymbolsArray = probabilitiesJson.getJSONArray("standard_symbols");
         List<Map<String, Integer>> standardSymbols = parseStandardSymbols(standardSymbolsArray);
@@ -127,15 +126,34 @@ public class JsonUtils {
             EnumWinningCombinationType combinationType;
             try {
                 combinationType = EnumWinningCombinationType.valueOf(key);
-            } catch (InvalidArgumentException e) {
+            } catch (IllegalArgumentException e) {
                 // Handle unknown enum types gracefully
                 combinationType = EnumWinningCombinationType.same_symbol_3_times; // Default or handle accordingly
                 System.err.println("Warning: Invalid combination type '" + key + "'. Defaulting to 'same_symbol_3_times'.");
             }
 
             double rewardMultiplier = wcJson.optDouble("reward_multiplier", 0.0);
-            String when = wcJson.optString("when", "");
+            String whenStr = wcJson.optString("when", "");
             int count = wcJson.optInt("count", 0);
+
+            // Parse 'when' field
+            WinningCondition when;
+            try {
+                when = WinningCondition.valueOf(whenStr);
+            } catch (IllegalArgumentException e) {
+                when = WinningCondition.same_symbols; // Default or handle accordingly
+                System.err.println("Warning: Invalid 'when' condition '" + whenStr + "'. Defaulting to 'SAME_SYMBOLS'.");
+            }
+
+            // Parse 'group' field
+            WinningGroup group;
+            try {
+                group = WinningGroup.valueOf(wcJson.optString("group", "SAME_SYMBOLS"));
+            } catch (IllegalArgumentException e) {
+                group = WinningGroup.same_symbols; // Default or handle accordingly
+                System.err.println("Warning: Invalid 'group' '" + wcJson.optString("group") + "'. Defaulting to 'SAME_SYMBOLS'.");
+            }
+
             JSONArray coveredAreasArray = wcJson.optJSONArray("covered_areas");
 
             // Parse coveredAreas
@@ -152,7 +170,7 @@ public class JsonUtils {
             }
 
             // Create WinningCombination object
-            WinningCombination wcConfig = new WinningCombination(combinationType, rewardMultiplier, when, count, coveredAreas);
+            WinningCombination wcConfig = new WinningCombination(combinationType, rewardMultiplier, when, group, count, coveredAreas);
 
             // Add to map
             winCombinations.put(key, wcConfig);
@@ -164,5 +182,4 @@ public class JsonUtils {
 
         return winCombinations;
     }
-
 }
